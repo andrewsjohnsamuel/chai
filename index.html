@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chai?</title>
+
+<style>
+  :root {
+    --base-font: clamp(16px, 4vw, 18px);
+    --h1-font: clamp(24px, 6vw, 30px);
+    --taunt-font: clamp(14px, 4.5vw, 16px);
+  }
+
+  body {
+    margin: 0;
+    height: 100vh;
+    font-family: "Poppins", system-ui, sans-serif;
+    background: linear-gradient(135deg, #fdeff9, #ecf2ff);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .card {
+    width: min(92vw, 420px);
+    padding: 38px 34px 44px;
+    border-radius: 34px;
+    background: white;
+    box-shadow: 0 25px 45px rgba(0,0,0,0.12);
+    text-align: center;
+    position: relative;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: var(--h1-font);
+  }
+
+  p {
+    margin-top: 10px;
+    color: #6b7280;
+    font-size: var(--base-font);
+  }
+
+  .taunt {
+    margin-top: 22px;
+    padding: 18px 20px;
+    background: #111827;
+    color: #f9fafb;
+    border-radius: 20px;
+    font-size: var(--taunt-font);
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.45;
+  }
+
+  .reaction {
+    position: absolute;
+    font-size: 24px;
+    animation: floatUp 1.6s ease forwards;
+    pointer-events: none;
+  }
+
+  .buttons {
+    position: relative;
+    height: 160px;
+    margin-top: 32px;
+  }
+
+  button {
+    position: absolute;
+    padding: 16px 38px;
+    border-radius: 999px;
+    border: none;
+    font-size: var(--base-font);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  #yes {
+    left: 40px;
+    top: 55px;
+    background: #86efac;
+  }
+
+  #no {
+    right: 40px;
+    top: 55px;
+    background: #fecaca;
+    color: #7f1d1d;
+    z-index: 3;
+  }
+
+  .win {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at top, #fff7ed, #fde68a, #fbbf24);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    animation: fadeIn 1s ease forwards;
+  }
+
+  .cup { font-size: 96px; animation: float 3s ease-in-out infinite; }
+  .steam { font-size: 28px; animation: steam 2s ease-in-out infinite; }
+  .headline { font-size: clamp(26px, 6vw, 34px); margin-top: 18px; }
+  .sub { font-size: clamp(16px, 4.5vw, 18px); margin-top: 12px; max-width: 85%; }
+
+  @keyframes float { 50% { transform: translateY(-18px); } }
+  @keyframes steam { 50% { opacity: 1; transform: translateY(-14px); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes floatUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-80px); } }
+</style>
+</head>
+
+<body>
+
+<div class="card" id="card">
+  <h1>☕ Shri Kutty</h1>
+  <p>Very simple question.<br>Chai?</p>
+
+  <div id="taunt" class="taunt">
+    Go ahead. Click “No”. We both know how this usually ends.
+  </div>
+
+  <div class="buttons">
+    <button id="yes">Yes ☕</button>
+    <button id="no">No 🙃</button>
+  </div>
+</div>
+
+<script>
+  const no = document.getElementById("no");
+  const taunt = document.getElementById("taunt");
+  const card = document.getElementById("card");
+
+  const reactions = ["😏","🙄","😂","🤨","😮‍💨","😌","🤦‍♀️","😒"];
+
+  const taunts = [
+  "You clicked no like it means something.",
+  "Relax. It’s chai, not a life decision.",
+  "This ‘no’ has a very short lifespan.",
+  "You’ve said this before. It didn’t stick.",
+  "All this effort for hot leaf water.",
+  "Bold move. Temporary though.",
+  "You’re delaying the inevitable.",
+  "This is hesitation, not discipline.",
+  "The no button is doing unpaid labor.",
+  "You’ll reverse this. Soon.",
+  "This is the fake resistance stage.",
+  "Chai doesn’t care about your logic.",
+  "You could already be drinking it.",
+  "You’re not convincing anyone.",
+  "This isn’t control. It’s procrastination.",
+  "We both know how this ends.",
+  "You’re treating chai like it has consequences.",
+  "That wasn’t a decision. It was a pause.",
+  "Statistically, this fails.",
+  "You’ll say yes without mentioning this.",
+  "The yes button is waiting.",
+  "This is routine behavior.",
+  "You’re not special for saying no.",
+  "This happens every time.",
+  "You’re still hovering. Of course.",
+  "Overthinking detected. Chai unaffected.",
+  "This ‘no’ is cosmetic.",
+  "You’re buying time, not refusing.",
+  "Outcome unchanged.",
+  "Proceeding to chai soon."
+];
+
+  // 🔊 Audio – bulletproof version
+  let audioCtx;
+  function getAudioCtx() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume();
+    }
+    return audioCtx;
+  }
+
+  function swooshSound() {
+    const ctx = getAudioCtx();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+
+    o.type = "sine";
+    o.frequency.setValueAtTime(900, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.3);
+
+    g.gain.setValueAtTime(0.06, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.start();
+    o.stop(ctx.currentTime + 0.3);
+  }
+
+  function emojiReaction() {
+    const e = document.createElement("div");
+    e.className = "reaction";
+    e.textContent = reactions[Math.floor(Math.random() * reactions.length)];
+    e.style.left = Math.random() * 80 + "%";
+    e.style.bottom = "40px";
+    card.appendChild(e);
+    setTimeout(() => e.remove(), 1600);
+  }
+
+  function swoopAway() {
+    const x = Math.random() * (window.innerWidth - 140);
+    const y = Math.random() * (window.innerHeight - 100);
+
+    no.style.position = "fixed";
+    no.style.transition =
+      "left 0.6s cubic-bezier(.34,1.56,.64,1), top 0.6s cubic-bezier(.34,1.56,.64,1)";
+    no.style.left = `${x}px`;
+    no.style.top = `${y}px`;
+
+    taunt.textContent = taunts[Math.floor(Math.random() * taunts.length)];
+    emojiReaction();
+    swooshSound();
+  }
+
+  no.addEventListener("mouseenter", swoopAway);
+  no.addEventListener("mousemove", swoopAway);
+  no.addEventListener("touchstart", e => {
+    e.preventDefault();
+    swoopAway();
+  });
+
+// ✅ FINAL YES PAGE — COFFEE + STEAM + BG
+document.getElementById("yes").onclick = () => {
+  const ctx = getAudioCtx();
+
+  document.body.innerHTML = `
+    <div class="win">
+      <div class="steam">☁️ ☁️ ☁️</div>
+      <div class="cup">☕</div>
+
+      <div class="headline">
+        Finally, Shri Kutty 🌼
+      </div>
+
+      <div class="sub">
+        Chai time it is.<br><br>
+
+        Meanwhile —<br>
+        <strong>I knew something.</strong><br><br>
+
+        — Jon Snow<br>
+        (also Batman. also Iron Man.)
+      </div>
+    </div>
+  `;
+
+  // soft confirmation tone
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+
+  o.type = "triangle";
+  o.frequency.setValueAtTime(420, ctx.currentTime);
+
+  g.gain.setValueAtTime(0.05, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+
+  o.connect(g);
+  g.connect(ctx.destination);
+  o.start();
+  o.stop(ctx.currentTime + 0.4);
+};
+</script>
+
+</body>
+</html>
